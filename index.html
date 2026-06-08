@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agendamiento de Estacionamientos</title>
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- EmailJS -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+
+  <style>
+    /* ── CONFIG ─────────────────────────────────────────── */
+    :root {
+      --bg: #f5f5f3;
+      --surface: #ffffff;
+      --border: #e2e2df;
+      --text: #1a1a1a;
+      --muted: #6b7280;
+      --hint: #9ca3af;
+      --green: #16a34a;
+      --green-bg: #dcfce7;
+      --red: #dc2626;
+      --red-bg: #fee2e2;
+      --blue: #2563eb;
+      --blue-bg: #dbeafe;
+      --radius: 10px;
+      --radius-sm: 6px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* ── LAYOUT ─────────────────────────────────────────── */
+    header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 1rem 1.5rem; display: flex; align-items: center; gap: 12px; }
+    header h1 { font-size: 18px; font-weight: 600; }
+    header p { font-size: 13px; color: var(--muted); }
+    .container { max-width: 960px; margin: 0 auto; padding: 1.5rem 1rem; }
+
+    /* ── TABS ───────────────────────────────────────────── */
+    .tabs { display: flex; gap: 6px; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0; }
+    .tab { background: none; border: none; border-bottom: 2px solid transparent; padding: 8px 16px; font-size: 14px; cursor: pointer; color: var(--muted); margin-bottom: -1px; transition: color .15s; }
+    .tab:hover { color: var(--text); }
+    .tab.active { color: var(--blue); border-bottom-color: var(--blue); font-weight: 500; }
+    .section { display: none; }
+    .section.active { display: block; }
+
+    /* ── CARDS ──────────────────────────────────────────── */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; margin-bottom: 1rem; }
+    .spots-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; }
+    .spot-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; }
+    .spot-header { display: flex; align-items: flex-start; gap: 10px; padding-bottom: 0.75rem; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border); }
+    .spot-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+    .dot-free { background: var(--green); }
+    .dot-busy { background: var(--red); }
+    .spot-name { font-size: 14px; font-weight: 600; line-height: 1.3; }
+    .spot-status { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .res-item { padding: 8px 0; border-top: 1px solid var(--border); font-size: 13px; }
+    .res-time { font-weight: 600; }
+    .res-name { color: var(--text); }
+    .res-email { color: var(--muted); font-size: 12px; }
+    .empty-msg { font-size: 13px; color: var(--hint); padding: 4px 0; }
+    .badge-today { font-size: 11px; background: var(--blue-bg); color: var(--blue); padding: 1px 7px; border-radius: 99px; font-weight: 500; vertical-align: middle; }
+
+    /* ── FORM ───────────────────────────────────────────── */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 1rem; }
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    .form-group label { font-size: 13px; color: var(--muted); font-weight: 500; }
+    .form-group input, .form-group select {
+      border: 1px solid var(--border); border-radius: var(--radius-sm);
+      padding: 8px 10px; font-size: 14px; color: var(--text);
+      background: var(--surface); outline: none; width: 100%;
+      transition: border-color .15s;
+    }
+    .form-group input:focus, .form-group select:focus { border-color: var(--blue); }
+    @media (max-width: 540px) { .form-grid { grid-template-columns: 1fr; } }
+
+    /* ── BUTTONS ────────────────────────────────────────── */
+    .btn { border-radius: var(--radius-sm); padding: 8px 20px; font-size: 14px; cursor: pointer; font-weight: 500; border: 1px solid var(--border); background: var(--surface); color: var(--text); transition: background .15s; }
+    .btn:hover { background: var(--bg); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary { background: var(--blue); color: #fff; border-color: var(--blue); }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-danger-sm { background: none; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 2px 10px; font-size: 12px; cursor: pointer; color: var(--muted); }
+    .btn-danger-sm:hover { background: var(--red-bg); color: var(--red); border-color: var(--red); }
+
+    /* ── FILTER BAR ─────────────────────────────────────── */
+    .filter-bar { display: flex; gap: 10px; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; }
+    .filter-bar label { font-size: 13px; color: var(--muted); }
+    .filter-bar input[type="date"], .filter-bar input[type="email"] {
+      border: 1px solid var(--border); border-radius: var(--radius-sm);
+      padding: 6px 10px; font-size: 13px; color: var(--text); background: var(--surface);
+    }
+
+    /* ── BADGES ─────────────────────────────────────────── */
+    .badge-cancelled { font-size: 11px; background: var(--red-bg); color: var(--red); padding: 2px 8px; border-radius: 99px; }
+    .badge-active { font-size: 11px; background: var(--green-bg); color: var(--green); padding: 2px 8px; border-radius: 99px; }
+
+    /* ── MODAL ──────────────────────────────────────────── */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; display: none; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal-box { background: var(--surface); border-radius: var(--radius); padding: 1.5rem; max-width: 380px; width: 90%; }
+    .modal-box h3 { font-size: 16px; margin-bottom: 8px; }
+    .modal-box p { font-size: 13px; color: var(--muted); }
+    .modal-actions { display: flex; gap: 8px; margin-top: 1.25rem; justify-content: flex-end; }
+
+    /* ── TOAST ──────────────────────────────────────────── */
+    #toast { position: fixed; bottom: 24px; right: 24px; background: #1a1a1a; color: #fff; padding: 12px 18px; border-radius: var(--radius-sm); font-size: 14px; z-index: 200; display: none; max-width: 320px; line-height: 1.4; }
+
+    /* ── LOADING ────────────────────────────────────────── */
+    .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #ffffff55; border-top-color: #fff; border-radius: 50%; animation: spin .6s linear infinite; vertical-align: -3px; margin-right: 6px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── MIS RESERVAS ───────────────────────────────────── */
+    .res-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.25rem; margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+    .res-card-main p { font-size: 14px; font-weight: 600; margin-bottom: 3px; }
+    .res-card-main span { font-size: 13px; color: var(--muted); }
+    .res-card-email { font-size: 12px; color: var(--hint); margin-top: 3px; }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════
+     CONFIGURACIÓN — reemplaza estos valores con los tuyos
+═══════════════════════════════════════════════════════ -->
+<script>
+  const CONFIG = {
+    supabase: {
+      url:    'TU_SUPABASE_URL',       // ej: https://abcxyz.supabase.co
+      anonKey:'TU_SUPABASE_ANON_KEY',  // clave pública de tu proyecto
+    },
+    emailjs: {
+      publicKey:  'TU_EMAILJS_PUBLIC_KEY',
+      serviceId:  'TU_EMAILJS_SERVICE_ID',
+      templateId: 'TU_EMAILJS_TEMPLATE_ID',
+    }
+  };
+</script>
+<!-- ═══════════════════════════════════════════════════════ -->
+
+<header>
+  <div>
+    <h1>🅿 Agendamiento de Estacionamientos</h1>
+    <p>Don Carlos 3171 · San Sebastián 2979</p>
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('estado', this)">Estado</button>
+    <button class="tab" onclick="showTab('reservar', this)">Reservar</button>
+    <button class="tab" onclick="showTab('mis-reservas', this)">Mis reservas</button>
+  </div>
+
+  <!-- ── ESTADO ── -->
+  <div id="tab-estado" class="section active">
+    <div class="filter-bar">
+      <label>Fecha:</label>
+      <input type="date" id="filter-date" oninput="renderEstado()">
+      <button class="btn" onclick="clearDateFilter()" style="padding:6px 12px; font-size:13px;">Ver todas</button>
+    </div>
+    <div class="spots-grid" id="estado-container">
+      <p style="font-size:14px; color:var(--muted)">Cargando…</p>
+    </div>
+  </div>
+
+  <!-- ── RESERVAR ── -->
+  <div id="tab-reservar" class="section">
+    <div class="card">
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="r-nombre">Nombre completo</label>
+          <input type="text" id="r-nombre" placeholder="Juan Pérez" autocomplete="name">
+        </div>
+        <div class="form-group">
+          <label for="r-email">Correo electrónico</label>
+          <input type="email" id="r-email" placeholder="juan@correo.com" autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label for="r-spot">Estacionamiento</label>
+          <select id="r-spot">
+            <option value="Don Carlos 3171 E-5">Don Carlos 3171 E-5</option>
+            <option value="Don Carlos 3171 E-10">Don Carlos 3171 E-10</option>
+            <option value="San Sebastian 2979 E-146">San Sebastian 2979 E-146</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="r-fecha">Fecha</label>
+          <input type="date" id="r-fecha">
+        </div>
+        <div class="form-group">
+          <label for="r-inicio">Hora inicio</label>
+          <select id="r-inicio"></select>
+        </div>
+        <div class="form-group">
+          <label for="r-fin">Hora término</label>
+          <select id="r-fin"></select>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="btn-reservar" onclick="hacerReserva()">Confirmar reserva</button>
+    </div>
+  </div>
+
+  <!-- ── MIS RESERVAS ── -->
+  <div id="tab-mis-reservas" class="section">
+    <div class="filter-bar">
+      <label>Tu correo:</label>
+      <input type="email" id="filter-email" placeholder="tu@correo.com" oninput="renderMisReservas()" style="width:240px">
+    </div>
+    <div id="mis-reservas-container">
+      <p style="font-size:13px; color:var(--hint)">Ingresa tu correo para ver tus reservas.</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal de confirmación -->
+<div class="modal-overlay" id="modal">
+  <div class="modal-box">
+    <h3>Anular reserva</h3>
+    <p id="modal-msg"></p>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancelar</button>
+      <button class="btn" style="background:var(--red);color:#fff;border-color:var(--red)" onclick="confirmarAnulacion()">Anular</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── INIT ─────────────────────────────────────────────────
+const { createClient } = supabase;
+const db = createClient(CONFIG.supabase.url, CONFIG.supabase.anonKey);
+emailjs.init(CONFIG.emailjs.publicKey);
+
+const SPOTS = ['Don Carlos 3171 E-5', 'Don Carlos 3171 E-10', 'San Sebastian 2979 E-146'];
+let allReservations = [];
+let pendingCancelId = null;
+
+// ── UTILIDADES ───────────────────────────────────────────
+function today() { return new Date().toISOString().split('T')[0]; }
+
+function formatDate(d) {
+  if (!d) return '';
+  const [y,m,day] = d.split('-');
+  return `${day}/${m}/${y}`;
+}
+
+function isToday(d) { return d === today(); }
+
+function nowHHMM() {
+  const n = new Date();
+  return String(n.getHours()).padStart(2,'0') + ':' + String(n.getMinutes()).padStart(2,'0');
+}
+
+function showToast(msg, duration = 4000) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  setTimeout(() => { t.style.display = 'none'; }, duration);
+}
+
+function closeModal() {
+  pendingCancelId = null;
+  document.getElementById('modal').classList.remove('open');
+}
+
+// ── TABS ─────────────────────────────────────────────────
+function showTab(tab, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  el.classList.add('active');
+  if (tab === 'estado') loadAndRenderEstado();
+  if (tab === 'mis-reservas') renderMisReservas();
+}
+
+// ── HORAS ────────────────────────────────────────────────
+function initHoras() {
+  const horas = [];
+  for (let h = 7; h <= 20; h++) {
+    horas.push(String(h).padStart(2,'0') + ':00');
+    if (h < 20) horas.push(String(h).padStart(2,'0') + ':30');
+  }
+  const si = document.getElementById('r-inicio');
+  const sf = document.getElementById('r-fin');
+  horas.forEach(h => {
+    si.innerHTML += `<option value="${h}">${h}</option>`;
+    sf.innerHTML += `<option value="${h}">${h}</option>`;
+  });
+  si.value = '08:00';
+  sf.value = '09:00';
+}
+
+// ── SUPABASE: CARGAR RESERVAS ─────────────────────────────
+async function loadReservations() {
+  const { data, error } = await db
+    .from('reservations')
+    .select('*')
+    .eq('status', 'active')
+    .order('fecha', { ascending: true })
+    .order('inicio', { ascending: true });
+
+  if (error) { console.error(error); return []; }
+  return data || [];
+}
+
+async function loadAllReservations() {
+  const { data, error } = await db
+    .from('reservations')
+    .select('*')
+    .order('fecha', { ascending: false })
+    .order('inicio', { ascending: false });
+
+  if (error) { console.error(error); return []; }
+  return data || [];
+}
+
+// ── ESTADO ───────────────────────────────────────────────
+function clearDateFilter() {
+  document.getElementById('filter-date').value = '';
+  loadAndRenderEstado();
+}
+
+async function loadAndRenderEstado() {
+  const container = document.getElementById('estado-container');
+  container.innerHTML = '<p style="font-size:14px;color:var(--muted)">Cargando…</p>';
+  allReservations = await loadReservations();
+  renderEstado();
+}
+
+function renderEstado() {
+  const filterDate = document.getElementById('filter-date').value;
+  const container = document.getElementById('estado-container');
+  const hhmm = nowHHMM();
+
+  let html = '';
+  SPOTS.forEach(spot => {
+    const spotRes = allReservations
+      .filter(r => r.spot === spot && (!filterDate || r.fecha === filterDate));
+
+    const nowBusy = spotRes.some(r =>
+      isToday(r.fecha) && r.inicio <= hhmm && hhmm < r.fin
+    );
+
+    html += `<div class="spot-card">
+      <div class="spot-header">
+        <div class="spot-dot ${nowBusy ? 'dot-busy' : 'dot-free'}"></div>
+        <div>
+          <div class="spot-name">${spot}</div>
+          <div class="spot-status">${nowBusy ? 'Ocupado ahora' : 'Libre ahora'}</div>
+        </div>
+      </div>`;
+
+    if (spotRes.length === 0) {
+      html += `<p class="empty-msg">${filterDate ? 'Sin reservas para esta fecha' : 'Sin reservas programadas'}</p>`;
+    } else {
+      spotRes.forEach(r => {
+        html += `<div class="res-item">
+          <div class="res-time">${r.inicio} – ${r.fin}</div>
+          <div class="res-name">${r.nombre}</div>
+          <div class="res-email">${r.email}</div>
+          <div style="margin-top:2px">${formatDate(r.fecha)}${isToday(r.fecha) ? ' <span class="badge-today">hoy</span>' : ''}</div>
+        </div>`;
+      });
+    }
+    html += `</div>`;
+  });
+
+  container.innerHTML = html;
+}
+
+// ── HACER RESERVA ─────────────────────────────────────────
+async function hacerReserva() {
+  const nombre = document.getElementById('r-nombre').value.trim();
+  const email  = document.getElementById('r-email').value.trim();
+  const spot   = document.getElementById('r-spot').value;
+  const fecha  = document.getElementById('r-fecha').value;
+  const inicio = document.getElementById('r-inicio').value;
+  const fin    = document.getElementById('r-fin').value;
+
+  if (!nombre || !email || !fecha || !inicio || !fin) { showToast('Completa todos los campos.'); return; }
+  if (inicio >= fin) { showToast('La hora de inicio debe ser antes del término.'); return; }
+  if (fecha < today()) { showToast('No puedes reservar en una fecha pasada.'); return; }
+
+  // Verificar conflicto en Supabase
+  const { data: conflicts } = await db
+    .from('reservations')
+    .select('id')
+    .eq('spot', spot)
+    .eq('fecha', fecha)
+    .eq('status', 'active')
+    .lt('inicio', fin)
+    .gt('fin', inicio);
+
+  if (conflicts && conflicts.length > 0) {
+    showToast(`${spot} ya está reservado en ese horario.`); return;
+  }
+
+  const btn = document.getElementById('btn-reservar');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Guardando…';
+
+  const { data, error } = await db.from('reservations').insert([
+    { nombre, email, spot, fecha, inicio, fin, status: 'active' }
+  ]).select().single();
+
+  if (error) {
+    showToast('Error al guardar. Intenta de nuevo.');
+    btn.disabled = false; btn.textContent = 'Confirmar reserva';
+    return;
+  }
+
+  // Enviar correo con EmailJS
+  try {
+    await emailjs.send(CONFIG.emailjs.serviceId, CONFIG.emailjs.templateId, {
+      to_name:    nombre,
+      to_email:   email,
+      spot:       spot,
+      fecha:      formatDate(fecha),
+      hora_inicio: inicio,
+      hora_fin:    fin,
+    });
+  } catch(e) {
+    console.warn('EmailJS error:', e);
+  }
+
+  showToast(`Reserva confirmada. Se envió confirmación a ${email}.`);
+  document.getElementById('r-nombre').value = '';
+  document.getElementById('r-email').value = '';
+  document.getElementById('r-fecha').value = '';
+  btn.disabled = false; btn.textContent = 'Confirmar reserva';
+}
+
+// ── MIS RESERVAS ──────────────────────────────────────────
+async function renderMisReservas() {
+  const emailFilter = document.getElementById('filter-email').value.trim().toLowerCase();
+  const container = document.getElementById('mis-reservas-container');
+
+  if (!emailFilter || emailFilter.length < 4) {
+    container.innerHTML = '<p style="font-size:13px;color:var(--hint)">Ingresa tu correo para ver tus reservas.</p>';
+    return;
+  }
+
+  container.innerHTML = '<p style="font-size:13px;color:var(--muted)">Buscando…</p>';
+
+  const { data, error } = await db
+    .from('reservations')
+    .select('*')
+    .ilike('email', `%${emailFilter}%`)
+    .order('fecha', { ascending: false });
+
+  if (error || !data || data.length === 0) {
+    container.innerHTML = '<p style="font-size:13px;color:var(--hint)">No se encontraron reservas.</p>';
+    return;
+  }
+
+  let html = '';
+  data.forEach(r => {
+    html += `<div class="res-card">
+      <div class="res-card-main">
+        <p>${r.nombre} <span style="font-weight:400;color:var(--muted)">— ${r.spot}</span></p>
+        <span>${formatDate(r.fecha)}${isToday(r.fecha) ? ' <span class="badge-today">hoy</span>' : ''} &nbsp;·&nbsp; ${r.inicio} – ${r.fin}</span>
+        <div class="res-card-email">${r.email}</div>
+      </div>
+      <div>
+        ${r.status === 'cancelled'
+          ? '<span class="badge-cancelled">Anulada</span>'
+          : `<button class="btn-danger-sm" onclick="prepareCancel('${r.id}', '${r.nombre}', '${r.spot}', '${r.fecha}', '${r.inicio}', '${r.fin}', '${r.email}')">Anular</button>`
+        }
+      </div>
+    </div>`;
+  });
+  container.innerHTML = html;
+}
+
+// ── ANULAR ────────────────────────────────────────────────
+function prepareCancel(id, nombre, spot, fecha, inicio, fin, email) {
+  pendingCancelId = { id, email, nombre, spot, fecha, inicio, fin };
+  document.getElementById('modal-msg').innerHTML =
+    `¿Anular la reserva de <strong>${nombre}</strong> en <strong>${spot}</strong> el ${formatDate(fecha)} (${inicio}–${fin})?`;
+  document.getElementById('modal').classList.add('open');
+}
+
+async function confirmarAnulacion() {
+  if (!pendingCancelId) return;
+  const { id, email, nombre, spot, fecha, inicio, fin } = pendingCancelId;
+
+  const { error } = await db
+    .from('reservations')
+    .update({ status: 'cancelled' })
+    .eq('id', id);
+
+  if (error) { showToast('Error al anular. Intenta de nuevo.'); closeModal(); return; }
+
+  // Notificar por correo
+  try {
+    await emailjs.send(CONFIG.emailjs.serviceId, CONFIG.emailjs.templateId, {
+      to_name:     nombre,
+      to_email:    email,
+      spot:        spot,
+      fecha:       formatDate(fecha),
+      hora_inicio: inicio,
+      hora_fin:    fin,
+      anulada:     'true',
+    });
+  } catch(e) { console.warn('EmailJS error:', e); }
+
+  showToast(`Reserva anulada. Se notificó a ${email}.`);
+  closeModal();
+  renderMisReservas();
+  loadAndRenderEstado();
+}
+
+// ── INIT ─────────────────────────────────────────────────
+document.getElementById('r-fecha').min = today();
+document.getElementById('filter-date').value = today();
+initHoras();
+loadAndRenderEstado();
+</script>
+</body>
+</html>
