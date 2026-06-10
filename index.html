@@ -137,22 +137,22 @@ const CONFIG = {
 <div id="login-screen">
   <div class="login-card">
     <p class="login-title">ð¿ Agendamiento de Estacionamientos</p>
-    <p class="login-sub">Don Carlos 3171 Â· San SebastiÃ¡n 2979</p>
+    <p class="login-sub">Don Carlos 3171 · San Sebastián 2979</p>
 
     <!-- Paso 1: ingresar correo -->
     <div id="step-email" class="login-step">
       <label for="login-email">Ingresa tu correo para acceder</label>
       <input type="email" id="login-email" placeholder="tu@correo.com" autocomplete="email" />
-      <button class="btn btn-primary" id="btn-send-otp" onclick="sendOTP()">Enviar cÃ³digo</button>
+      <button class="btn btn-primary" id="btn-send-otp" onclick="sendOTP()">Enviar código</button>
     </div>
 
-    <!-- Paso 2: ingresar cÃ³digo -->
+    <!-- Paso 2: ingresar código -->
     <div id="step-otp" class="login-step hidden">
-      <label>CÃ³digo enviado a <span id="email-sent" class="otp-sent-email"></span></label>
+      <label>Código enviado a <span id="email-sent" class="otp-sent-email"></span></label>
       <input type="text" id="login-otp" placeholder="123456" maxlength="6" inputmode="numeric"
              oninput="this.value=this.value.replace(/\D/g,'')" />
-      <p class="login-hint">Revisa tu bandeja de entrada. El cÃ³digo expira en 10 minutos.</p>
-      <button class="btn btn-primary" id="btn-verify-otp" onclick="verifyOTP()">Verificar cÃ³digo</button>
+      <p class="login-hint">Revisa tu bandeja de entrada. El código expira en 10 minutos.</p>
+      <button class="btn btn-primary" id="btn-verify-otp" onclick="verifyOTP()">Verificar código</button>
       <button class="back-link" onclick="backToEmail()">â Cambiar correo</button>
     </div>
   </div>
@@ -165,7 +165,7 @@ const CONFIG = {
   <header>
     <div>
       <p class="header-title">ð¿ Agendamiento de Estacionamientos</p>
-      <p class="header-sub">Don Carlos 3171 Â· San SebastiÃ¡n 2979</p>
+      <p class="header-sub">Don Carlos 3171 · San Sebastián 2979</p>
     </div>
     <div class="header-user">
       <span id="user-email-display" class="user-email"></span>
@@ -199,10 +199,10 @@ const CONFIG = {
         <div class="form-grid">
           <div class="form-group">
             <label>Nombre completo</label>
-            <input type="text" id="r-nombre" placeholder="Juan PÃ©rez" autocomplete="name" />
+            <input type="text" id="r-nombre" placeholder="Juan Pérez" autocomplete="name" />
           </div>
           <div class="form-group">
-            <label>Correo electrÃ³nico</label>
+            <label>Correo electr&oacute;nico</label>
             <input type="email" id="r-email" readonly />
           </div>
           <div class="form-group">
@@ -222,7 +222,7 @@ const CONFIG = {
             <select id="r-inicio"><option value="">-- Selecciona hora --</option></select>
           </div>
           <div class="form-group">
-            <label>Hora tÃ©rmino</label>
+            <label>Hora de t&eacute;rmino</label>
             <select id="s-fin"></select>
           </div>
         </div>
@@ -281,7 +281,6 @@ function handleAuthChange(session) {
     document.getElementById('r-email').value = email;
     document.getElementById('r-fecha').min = today();
     document.getElementById('filter-date').value = today();
-    initHoras();
     loadAndRenderEstado();
   } else {
     document.getElementById('login-screen').style.display = 'flex';
@@ -291,14 +290,14 @@ function handleAuthChange(session) {
 
 async function sendOTP() {
   const email = document.getElementById('login-email').value.trim();
-  if (!email || !email.includes('@')) { showToast('Ingresa un correo vÃ¡lido.'); return; }
+  if (!email || !email.includes('@')) { showToast('Ingresa un correo válido.'); return; }
   const btn = document.getElementById('btn-send-otp');
   btn.disabled = true; btn.textContent = 'Enviandoâ¦';
   const { error } = await db.auth.signInWithOtp({
     email,
     options: { shouldCreateUser: true, emailRedirectTo: 'https://agendamiento-estacionamientos.vercel.app' }
   });
-  btn.disabled = false; btn.textContent = 'Enviar cÃ³digo';
+  btn.disabled = false; btn.textContent = 'Enviar código';
   if (error) { showToast('Error: ' + error.message); return; }
   document.getElementById('email-sent').textContent = email;
   document.getElementById('step-email').classList.add('hidden');
@@ -308,12 +307,12 @@ async function sendOTP() {
 async function verifyOTP() {
   const email = document.getElementById('login-email').value.trim();
   const token = document.getElementById('login-otp').value.trim();
-  if (!token || token.length < 6) { showToast('Ingresa el cÃ³digo de 6 dÃ­gitos.'); return; }
+  if (!token || token.length < 6) { showToast('Ingresa el código de 6 dígitos.'); return; }
   const btn = document.getElementById('btn-verify-otp');
   btn.disabled = true; btn.textContent = 'Verificandoâ¦';
   const { error } = await db.auth.verifyOtp({ email, token, type: 'email' });
-  btn.disabled = false; btn.textContent = 'Verificar cÃ³digo';
-  if (error) { showToast('CÃ³digo invÃ¡lido o expirado. Intenta de nuevo.'); return; }
+  btn.disabled = false; btn.textContent = 'Verificar código';
+  if (error) { showToast('Código inválido o expirado. Intenta de nuevo.'); return; }
 }
 
 function backToEmail() {
@@ -471,14 +470,14 @@ async function hacerReserva() {
   const fin    = document.getElementById('r-fin').value;
 
   if (!nombre || !fecha || !inicio || !fin) { showToast('Completa todos los campos.'); return; }
-  if (inicio >= fin) { showToast('La hora inicio debe ser antes del tÃ©rmino.'); return; }
+  if (inicio >= fin) { showToast('La hora inicio debe ser antes del término.'); return; }
   if (fecha < today()) { showToast('No puedes reservar en una fecha pasada.'); return; }
 
   const { data: conflicts } = await db.from('reservations')
     .select('id').eq('spot', spot).eq('fecha', fecha).eq('status', 'active')
     .lt('inicio', fin).gt('fin', inicio);
 
-  if (conflicts?.length > 0) { showToast(`${spot} ya estÃ¡ reservado en ese horario.`); return; }
+  if (conflicts?.length > 0) { showToast(`${spot} ya está reservado en ese horario.`); return; }
 
   const btn = document.getElementById('btn-reservar');
   btn.disabled = true; btn.textContent = 'Guardandoâ¦';
@@ -521,7 +520,7 @@ async function renderMisReservas() {
     html += `<div class="res-card">
       <div class="res-card-main">
         <p>${r.nombre} â <span>${r.spot}</span></p>
-        <span>${formatDate(r.fecha)}${isToday(r.fecha) ? ' <span class="badge-today">hoy</span>' : ''} Â· ${r.inicio}â${r.fin}</span>
+        <span>${formatDate(r.fecha)}${isToday(r.fecha) ? ' <span class="badge-today">hoy</span>' : ''} · ${r.inicio}â${r.fin}</span>
         <div class="res-card-email">${r.email}</div>
       </div>
       <div>
