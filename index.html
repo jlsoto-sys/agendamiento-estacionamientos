@@ -293,7 +293,10 @@ async function sendOTP() {
   if (!email || !email.includes('@')) { showToast('Ingresa un correo vÃ¡lido.'); return; }
   const btn = document.getElementById('btn-send-otp');
   btn.disabled = true; btn.textContent = 'Enviandoâ¦';
-  const { error } = await db.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+  const { error } = await db.auth.signInWithOtp({
+    email,
+    options: { shouldCreateUser: true, emailRedirectTo: 'https://agendamiento-estacionamientos.vercel.app' }
+  });
   btn.disabled = false; btn.textContent = 'Enviar cÃ³digo';
   if (error) { showToast('Error: ' + error.message); return; }
   document.getElementById('email-sent').textContent = email;
