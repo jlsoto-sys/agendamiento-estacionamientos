@@ -256,9 +256,7 @@ const CONFIG = {
 <script>
 // ââ INIT âââââââââââââââââââââââââââââââââââââââââââââââââ
 const { createClient } = supabase;
-const db = createClient(CONFIG.supabase.url, CONFIG.supabase.anonKey, {
-  auth: { flowType: 'implicit' }
-});
+const db = createClient(CONFIG.supabase.url, CONFIG.supabase.anonKey);
 
 const SPOTS = ['Don Carlos 3171 E-5', 'Don Carlos 3171 E-10', 'San Sebastian 2979 E-146'];
 let currentSession = null;
