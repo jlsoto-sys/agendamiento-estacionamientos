@@ -50,7 +50,8 @@
 
     /* CARDS */
     .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; margin-bottom: 1rem; }
-    .spots-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; }
+    .spots-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+    @media (max-width: 700px) { .spots-grid { grid-template-columns: 1fr; } }
     .spot-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; }
     .spot-header { display: flex; align-items: flex-start; gap: 8px; padding-bottom: 0.75rem; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border); }
     .spot-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
@@ -218,7 +219,7 @@ const CONFIG = {
           </div>
           <div class="form-group">
             <label>Hora inicio</label>
-            <select id="r-inicio"></select>
+            <select id="r-inicio"><option value="">-- Selecciona hora --</option></select>
           </div>
           <div class="form-group">
             <label>Hora tÃ©rmino</label>
@@ -341,7 +342,8 @@ function today() { return new Date().toISOString().split('T')[0]; }
 function formatDate(d) {
   if (!d) return '';
   const [y,m,day] = d.split('-');
-  return `${day}/${m}/${y}`;
+  const meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  return `${parseInt(day)} ${meses[parseInt(m)-1]} ${y}`;
 }
 
 function isToday(d) { return d === today(); }
@@ -504,7 +506,7 @@ async function renderMisReservas() {
 
   let query = db.from('reservations').select('*').order('fecha', { ascending: false });
   if (!isAdmin()) {
-    query = query.eq('user_id', currentSession.user.id);
+    query = query.or(`user_id.eq.${currentSession.user.id},email.ilike.${currentSession.user.email}`);
   }
 
   const { data } = await query;
