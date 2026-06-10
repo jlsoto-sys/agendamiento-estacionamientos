@@ -150,7 +150,7 @@ const CONFIG = {
     <!-- Paso 2: ingresar código -->
     <div id="step-otp" class="login-step hidden">
       <label>Código enviado a <span id="email-sent" class="otp-sent-email"></span></label>
-      <input type="text" id="login-otp" placeholder="12345678" maxlength="8" inputmode="numeric"
+      <input type="text" id="login-otp" placeholder="123456" maxlength="6" inputmode="numeric"
              oninput="this.value=this.value.replace(/\D/g,'')" />
       <p class="login-hint">Revisa tu bandeja de entrada. El código expira en 10 minutos.</p>
       <button class="btn btn-primary" id="btn-verify-otp" onclick="verifyOTP()">Verificar código</button>
@@ -310,7 +310,7 @@ async function sendOTP() {
 async function verifyOTP() {
   const email = document.getElementById('login-email').value.trim();
   const token = document.getElementById('login-otp').value.trim();
-  if (!token || token.length < 4) { showToast('Ingresa el código del correo.'); return; }
+  if (!token || token.length < 6) { showToast('Ingresa el código de 6 dígitos.'); return; }
   const btn = document.getElementById('btn-verify-otp');
   btn.disabled = true; btn.textContent = 'Verificandoâ¦';
   const { error } = await db.auth.verifyOtp({ email, token, type: 'email' });
