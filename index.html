@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
@@ -7,240 +6,154 @@
   <title>Agendamiento de Estacionamientos</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    :root {
-      --bg: #f5f5f3; --surface: #ffffff; --border: #e2e2df;
-      --text: #1a1a1a; --muted: #6b7280; --hint: #9ca3af;
-      --green: #16a34a; --green-bg: #dcfce7;
-      --red: #dc2626; --red-bg: #fee2e2;
-      --blue: #2563eb; --blue-bg: #dbeafe;
-      --radius: 10px; --radius-sm: 6px;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
-
-    /* LOGIN */
-    #login-screen { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1rem; }
-    .login-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 2rem; width: 100%; max-width: 380px; }
-    .login-title { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
-    .login-sub { font-size: 13px; color: var(--muted); margin-bottom: 1.5rem; }
-    .login-step { display: flex; flex-direction: column; gap: 10px; }
-    .login-step.hidden { display: none; }
-    .login-step label { font-size: 13px; color: var(--muted); font-weight: 500; }
-    .login-step input { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 15px; width: 100%; outline: none; }
-    .login-step input:focus { border-color: var(--blue); }
-    .login-hint { font-size: 12px; color: var(--muted); }
-    .otp-sent-email { font-weight: 500; color: var(--text); }
-    .back-link { font-size: 13px; color: var(--blue); cursor: pointer; background: none; border: none; padding: 0; text-align: left; }
-
-    /* APP */
-    #app { display: none; min-height: 100vh; flex-direction: column; }
-    header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0.75rem 1.5rem; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-    .header-title { font-size: 16px; font-weight: 600; }
-    .header-sub { font-size: 12px; color: var(--muted); }
-    .header-user { display: flex; align-items: center; gap: 10px; }
-    .user-email { font-size: 13px; color: var(--muted); }
-    .admin-badge { font-size: 11px; background: var(--blue-bg); color: var(--blue); padding: 2px 8px; border-radius: 99px; font-weight: 500; }
-    .container { max-width: 960px; margin: 0 auto; padding: 1.5rem 1rem; flex: 1; }
-
-    /* TABS */
-    .tabs { display: flex; gap: 6px; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
-    .tab { background: none; border: none; border-bottom: 2px solid transparent; padding: 8px 16px; font-size: 14px; cursor: pointer; color: var(--muted); margin-bottom: -1px; }
-    .tab.active { color: var(--blue); border-bottom-color: var(--blue); font-weight: 500; }
-    .section { display: none; }
-    .section.active { display: block; }
-
-    /* CARDS */
-    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; margin-bottom: 1rem; }
-    .spots-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
-    @media (max-width: 700px) { .spots-grid { grid-template-columns: 1fr; } }
-    .spot-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; }
-    .spot-header { display: flex; align-items: flex-start; gap: 8px; padding-bottom: 0.75rem; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border); }
-    .spot-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
-    .dot-free { background: var(--green); }
-    .dot-busy { background: var(--red); }
-    .spot-name { font-size: 14px; font-weight: 600; line-height: 1.3; }
-    .spot-status { font-size: 12px; color: var(--muted); margin-top: 2px; }
-    .res-item { padding: 8px 0; border-top: 1px solid var(--border); font-size: 13px; }
-    .res-item-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; }
-    .res-time { font-weight: 600; }
-    .res-name { color: var(--text); }
-    .res-email-small { color: var(--muted); font-size: 12px; }
-    .empty-msg { font-size: 13px; color: var(--hint); padding: 4px 0; }
-    .badge-today { font-size: 10px; background: var(--blue-bg); color: var(--blue); padding: 1px 7px; border-radius: 99px; font-weight: 500; vertical-align: middle; }
-    .badge-mine { font-size: 10px; background: var(--green-bg); color: var(--green); padding: 1px 7px; border-radius: 99px; vertical-align: middle; }
-
-    /* FORM */
-    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 1rem; }
-    .form-group { display: flex; flex-direction: column; gap: 5px; }
-    .form-group label { font-size: 13px; color: var(--muted); font-weight: 500; }
-    .form-group input, .form-group select {
-      border: 1px solid var(--border); border-radius: var(--radius-sm);
-      padding: 8px 10px; font-size: 14px; color: var(--text);
-      background: var(--surface); outline: none; width: 100%;
-    }
-    .form-group input:focus, .form-group select:focus { border-color: var(--blue); }
-    .form-group input[readonly] { background: var(--bg); color: var(--muted); cursor: default; }
-    @media (max-width: 540px) { .form-grid { grid-template-columns: 1fr; } }
-
-    /* BUTTONS */
-    .btn { border-radius: var(--radius-sm); padding: 8px 20px; font-size: 14px; cursor: pointer; font-weight: 500; border: 1px solid var(--border); background: var(--surface); color: var(--text); }
-    .btn:hover { background: var(--bg); }
-    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    .btn-primary { background: var(--blue); color: #fff; border-color: var(--blue); }
-    .btn-primary:hover { background: #1d4ed8; }
-    .btn-danger-sm { background: none; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 2px 8px; font-size: 11px; cursor: pointer; color: var(--muted); white-space: nowrap; }
-    .btn-danger-sm:hover { background: var(--red-bg); color: var(--red); border-color: var(--red); }
-    .btn-logout { background: none; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 5px 12px; font-size: 13px; cursor: pointer; color: var(--muted); }
-    .btn-logout:hover { background: var(--red-bg); color: var(--red); border-color: var(--red); }
-
-    /* FILTER */
-    .filter-bar { display: flex; gap: 10px; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; }
-    .filter-bar label { font-size: 13px; color: var(--muted); }
-    .filter-bar input[type="date"] { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 6px 10px; font-size: 13px; background: var(--surface); }
-
-    /* BADGES */
-    .badge-cancelled { font-size: 11px; background: var(--red-bg); color: var(--red); padding: 2px 8px; border-radius: 99px; }
-
-    /* MODAL */
-    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; display: none; align-items: center; justify-content: center; }
-    .modal-overlay.open { display: flex; }
-    .modal-box { background: var(--surface); border-radius: var(--radius); padding: 1.5rem; max-width: 380px; width: 90%; }
-    .modal-box h3 { font-size: 16px; margin-bottom: 8px; }
-    .modal-box p { font-size: 13px; color: var(--muted); }
-    .modal-actions { display: flex; gap: 8px; margin-top: 1.25rem; justify-content: flex-end; }
-
-    /* TOAST */
-    #toast { position: fixed; bottom: 24px; right: 24px; background: #1a1a1a; color: #fff; padding: 12px 18px; border-radius: var(--radius-sm); font-size: 14px; z-index: 200; display: none; max-width: 320px; line-height: 1.4; }
-
-    /* MIS RESERVAS */
-    .res-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.25rem; margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
-    .res-card-main p { font-size: 14px; font-weight: 600; margin-bottom: 3px; }
-    .res-card-main span { font-size: 13px; color: var(--muted); }
-    .res-card-email { font-size: 12px; color: var(--hint); margin-top: 3px; }
+    :root { --bg:#f5f5f3;--surface:#fff;--border:#e2e2df;--text:#1a1a1a;--muted:#6b7280;--hint:#9ca3af;--green:#16a34a;--green-bg:#dcfce7;--red:#dc2626;--red-bg:#fee2e2;--blue:#2563eb;--blue-bg:#dbeafe;--radius:10px;--radius-sm:6px; }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+    #login-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1rem}
+    .login-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:2rem;width:100%;max-width:380px}
+    .login-title{font-size:18px;font-weight:600;margin-bottom:4px}
+    .login-sub{font-size:13px;color:var(--muted);margin-bottom:1.5rem}
+    .login-group{display:flex;flex-direction:column;gap:10px}
+    .login-group label{font-size:13px;color:var(--muted);font-weight:500}
+    .login-group input{border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;font-size:15px;width:100%;outline:none}
+    .login-group input:focus{border-color:var(--blue)}
+    #app{display:none;min-height:100vh;flex-direction:column}
+    header{background:var(--surface);border-bottom:1px solid var(--border);padding:.75rem 1.5rem;display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .header-title{font-size:16px;font-weight:600}
+    .header-sub{font-size:12px;color:var(--muted)}
+    .header-user{display:flex;align-items:center;gap:10px}
+    .user-email{font-size:13px;color:var(--muted)}
+    .admin-badge{font-size:11px;background:var(--blue-bg);color:var(--blue);padding:2px 8px;border-radius:99px;font-weight:500}
+    .container{max-width:960px;margin:0 auto;padding:1.5rem 1rem;flex:1}
+    .tabs{display:flex;gap:6px;margin-bottom:1.5rem;border-bottom:1px solid var(--border)}
+    .tab{background:none;border:none;border-bottom:2px solid transparent;padding:8px 16px;font-size:14px;cursor:pointer;color:var(--muted);margin-bottom:-1px}
+    .tab.active{color:var(--blue);border-bottom-color:var(--blue);font-weight:500}
+    .section{display:none}
+    .section.active{display:block}
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:1rem}
+    .spots-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem}
+    @media(max-width:700px){.spots-grid{grid-template-columns:1fr}}
+    .spot-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem}
+    .spot-header{display:flex;align-items:flex-start;gap:8px;padding-bottom:.75rem;margin-bottom:.75rem;border-bottom:1px solid var(--border)}
+    .spot-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:4px}
+    .dot-free{background:var(--green)}
+    .dot-busy{background:var(--red)}
+    .spot-name{font-size:14px;font-weight:600;line-height:1.3}
+    .spot-status{font-size:12px;color:var(--muted);margin-top:2px}
+    .res-item{padding:8px 0;border-top:1px solid var(--border);font-size:13px}
+    .res-item-header{display:flex;align-items:flex-start;justify-content:space-between;gap:6px}
+    .res-time{font-weight:600}
+    .res-email-small{color:var(--muted);font-size:12px}
+    .empty-msg{font-size:13px;color:var(--hint);padding:4px 0}
+    .badge-today{font-size:10px;background:var(--blue-bg);color:var(--blue);padding:1px 7px;border-radius:99px;font-weight:500;vertical-align:middle}
+    .badge-mine{font-size:10px;background:var(--green-bg);color:var(--green);padding:1px 7px;border-radius:99px;vertical-align:middle}
+    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1rem}
+    .form-group{display:flex;flex-direction:column;gap:5px}
+    .form-group label{font-size:13px;color:var(--muted);font-weight:500}
+    .form-group input,.form-group select{border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 10px;font-size:14px;color:var(--text);background:var(--surface);outline:none;width:100%}
+    .form-group input:focus,.form-group select:focus{border-color:var(--blue)}
+    .form-group input[readonly]{background:var(--bg);color:var(--muted);cursor:default}
+    @media(max-width:540px){.form-grid{grid-template-columns:1fr}}
+    .btn{border-radius:var(--radius-sm);padding:8px 20px;font-size:14px;cursor:pointer;font-weight:500;border:1px solid var(--border);background:var(--surface);color:var(--text)}
+    .btn:hover{background:var(--bg)}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+    .btn-primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+    .btn-primary:hover{background:#1d4ed8}
+    .btn-danger-sm{background:none;border:1px solid var(--border);border-radius:var(--radius-sm);padding:2px 8px;font-size:11px;cursor:pointer;color:var(--muted);white-space:nowrap}
+    .btn-danger-sm:hover{background:var(--red-bg);color:var(--red);border-color:var(--red)}
+    .btn-logout{background:none;border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 12px;font-size:13px;cursor:pointer;color:var(--muted)}
+    .btn-logout:hover{background:var(--red-bg);color:var(--red);border-color:var(--red)}
+    .filter-bar{display:flex;gap:10px;align-items:center;margin-bottom:1.25rem;flex-wrap:wrap}
+    .filter-bar label{font-size:13px;color:var(--muted)}
+    .filter-bar input[type="date"]{border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px;font-size:13px;background:var(--surface)}
+    .badge-cancelled{font-size:11px;background:var(--red-bg);color:var(--red);padding:2px 8px;border-radius:99px}
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;display:none;align-items:center;justify-content:center}
+    .modal-overlay.open{display:flex}
+    .modal-box{background:var(--surface);border-radius:var(--radius);padding:1.5rem;max-width:380px;width:90%}
+    .modal-box h3{font-size:16px;margin-bottom:8px}
+    .modal-box p{font-size:13px;color:var(--muted)}
+    .modal-actions{display:flex;gap:8px;margin-top:1.25rem;justify-content:flex-end}
+    #toast{position:fixed;bottom:24px;right:24px;background:#1a1a1a;color:#fff;padding:12px 18px;border-radius:var(--radius-sm);font-size:14px;z-index:200;display:none;max-width:320px;line-height:1.4}
+    .res-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:.75rem;display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+    .res-card-main p{font-size:14px;font-weight:600;margin-bottom:3px}
+    .res-card-main span{font-size:13px;color:var(--muted)}
+    .res-card-email{font-size:12px;color:var(--hint);margin-top:3px}
   </style>
 </head>
-<body><!-- ââââââââââââââââââââââââââââââââââââ
-     CONFIG â reemplaza con tus valores
-ââââââââââââââââââââââââââââââââââââ -->
+<body>
 <script>
 const CONFIG = {
   supabase: {
-    url:    'https://bnhktfsmbiacxubugwqg.supabase.co',
-    anonKey:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJuaGt0ZnNtYmlhY3h1YnVnd3FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5NDQ0ODYsImV4cCI6MjA5NjUyMDQ4Nn0.AMK_ZVWkpy9av2HBORCmx3Jc5PdrhSR22XsBrHImu1Y',
+    url: 'https://bnhktfsmbiacxubugwqg.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJuaGt0ZnNtYmlhY3h1YnVnd3FnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5NDQ0ODYsImV4cCI6MjA5NjUyMDQ4Nn0.AMK_ZVWkpy9av2HBORCmx3Jc5PdrhSR22XsBrHImu1Y'
   },
   adminEmail: 'jlsoto@artool.cl'
 };
 </script>
 
-<!-- ââââââââââââââââââââââââââââââââââââ
-     PANTALLA DE LOGIN
-ââââââââââââââââââââââââââââââââââââ -->
 <div id="login-screen">
   <div class="login-card">
-    <p class="login-title">ð¿ Agendamiento de Estacionamientos</p>
-    <p class="login-sub">Don Carlos 3171 · San Sebastián 2979</p>
-
-    <!-- Paso 1: ingresar correo -->
-    <div id="step-email" class="login-step">
+    <p class="login-title">Agendamiento de Estacionamientos</p>
+    <p class="login-sub">Don Carlos 3171 &middot; San Sebastian 2979</p>
+    <div class="login-group">
       <label for="login-email">Ingresa tu correo para acceder</label>
-      <input type="email" id="login-email" placeholder="tu@correo.com" autocomplete="email" />
-      <button class="btn btn-primary" id="btn-send-otp" onclick="sendOTP()">Enviar código</button>
-    </div>
-
-    <!-- Paso 2: ingresar código -->
-    <div id="step-otp" class="login-step hidden">
-      <label>Código enviado a <span id="email-sent" class="otp-sent-email"></span></label>
-      <input type="text" id="login-otp" placeholder="123456" maxlength="6" inputmode="numeric"
-             oninput="this.value=this.value.replace(/\D/g,'')" />
-      <p class="login-hint">Revisa tu bandeja de entrada. El código expira en 10 minutos.</p>
-      <button class="btn btn-primary" id="btn-verify-otp" onclick="verifyOTP()">Verificar código</button>
-      <button class="back-link" onclick="backToEmail()">â Cambiar correo</button>
+      <input type="email" id="login-email" placeholder="tu@correo.com" autocomplete="email" onkeydown="if(event.key==='Enter')entrar()" />
+      <button class="btn btn-primary" onclick="entrar()">Entrar</button>
     </div>
   </div>
 </div>
 
-<!-- ââââââââââââââââââââââââââââââââââââ
-     APP PRINCIPAL
-ââââââââââââââââââââââââââââââââââââ -->
 <div id="app">
   <header>
     <div>
-      <p class="header-title">ð¿ Agendamiento de Estacionamientos</p>
-      <p class="header-sub">Don Carlos 3171 · San Sebastián 2979</p>
+      <p class="header-title">Agendamiento de Estacionamientos</p>
+      <p class="header-sub">Don Carlos 3171 &middot; San Sebastian 2979</p>
     </div>
     <div class="header-user">
       <span id="user-email-display" class="user-email"></span>
       <span id="admin-badge" class="admin-badge" style="display:none">Admin</span>
-      <button class="btn-logout" onclick="logout()">Salir</button>
+      <button class="btn-logout" onclick="salir()">Salir</button>
     </div>
   </header>
-
   <div class="container">
     <div class="tabs">
-      <button class="tab active" onclick="showTab('estado', this)">Estado</button>
-      <button class="tab" onclick="showTab('reservar', this)">Reservar</button>
-      <button class="tab" onclick="showTab('mis-reservas', this)">Mis reservas</button>
+      <button class="tab active" onclick="showTab('estado',this)">Estado</button>
+      <button class="tab" onclick="showTab('reservar',this)">Reservar</button>
+      <button class="tab" onclick="showTab('mis-reservas',this)">Mis reservas</button>
     </div>
-
-    <!-- ESTADO -->
     <div id="tab-estado" class="section active">
       <div class="filter-bar">
         <label>Fecha:</label>
         <input type="date" id="filter-date" oninput="renderEstado()">
         <button class="btn" onclick="clearDateFilter()" style="padding:6px 12px;font-size:13px">Ver todas</button>
       </div>
-      <div class="spots-grid" id="estado-container">
-        <p style="font-size:14px;color:var(--muted)">Cargandoâ¦</p>
-      </div>
+      <div class="spots-grid" id="estado-container"><p style="font-size:14px;color:var(--muted)">Cargando...</p></div>
     </div>
-
-    <!-- RESERVAR -->
     <div id="tab-reservar" class="section">
       <div class="card">
         <div class="form-grid">
-          <div class="form-group">
-            <label>Nombre completo</label>
-            <input type="text" id="r-nombre" placeholder="Juan Pérez" autocomplete="name" />
-          </div>
-          <div class="form-group">
-            <label>Correo electr&oacute;nico</label>
-            <input type="email" id="r-email" readonly />
-          </div>
-          <div class="form-group">
-            <label>Estacionamiento</label>
+          <div class="form-group"><label>Nombre completo</label><input type="text" id="r-nombre" placeholder="Juan Perez" autocomplete="name" /></div>
+          <div class="form-group"><label>Correo electronico</label><input type="email" id="r-email" readonly /></div>
+          <div class="form-group"><label>Estacionamiento</label>
             <select id="r-spot">
               <option value="Don Carlos 3171 E-5">Don Carlos 3171 E-5</option>
               <option value="Don Carlos 3171 E-10">Don Carlos 3171 E-10</option>
               <option value="San Sebastian 2979 E-146">San Sebastian 2979 E-146</option>
             </select>
           </div>
-          <div class="form-group">
-            <label>Fecha</label>
-            <input type="date" id="r-fecha" />
-          </div>
-          <div class="form-group">
-            <label>Hora inicio</label>
-            <select id="r-inicio"><option value="">-- Selecciona hora --</option></select>
-          </div>
-          <div class="form-group">
-            <label>Hora de t&eacute;rmino</label>
-            <select id="s-fin"></select>
-          </div>
+          <div class="form-group"><label>Fecha</label><input type="date" id="r-fecha" /></div>
+          <div class="form-group"><label>Hora inicio</label><select id="r-inicio"><option value="">-- Selecciona hora --</option></select></div>
+          <div class="form-group"><label>Hora de termino</label><select id="r-fin"><option value="">-- Selecciona hora --</option></select></div>
         </div>
         <button class="btn btn-primary" id="btn-reservar" onclick="hacerReserva()">Confirmar reserva</button>
       </div>
     </div>
-
-    <!-- MIS RESERVAS -->
     <div id="tab-mis-reservas" class="section">
-      <div id="mis-reservas-container">
-        <p style="font-size:13px;color:var(--hint)">Cargandoâ¦</p>
-      </div>
+      <div id="mis-reservas-container"><p style="font-size:13px;color:var(--hint)">Cargando...</p></div>
     </div>
   </div>
 </div>
 
-<!-- MODAL -->
 <div class="modal-overlay" id="modal">
   <div class="modal-box">
     <h3>Anular reserva</h3>
@@ -254,314 +167,192 @@ const CONFIG = {
 <div id="toast"></div>
 
 <script>
-// ââ INIT âââââââââââââââââââââââââââââââââââââââââââââââââ
 const { createClient } = supabase;
 const db = createClient(CONFIG.supabase.url, CONFIG.supabase.anonKey);
-
-const SPOTS = ['Don Carlos 3171 E-5', 'Don Carlos 3171 E-10', 'San Sebastian 2979 E-146'];
-let currentSession = null;
+const SPOTS = ['Don Carlos 3171 E-5','Don Carlos 3171 E-10','San Sebastian 2979 E-146'];
+let currentEmail = null;
 let allReservations = [];
 let pendingCancelId = null;
 
-// ââ AUTH âââââââââââââââââââââââââââââââââââââââââââââââââ
-async function initAuth() {
-  const { data: { session } } = await db.auth.getSession();
-  handleAuthChange(session);
-  db.auth.onAuthStateChange((_, session) => handleAuthChange(session));
+function entrar() {
+  const email = document.getElementById('login-email').value.trim().toLowerCase();
+  if (!email || !email.includes('@')) { showToast('Ingresa un correo valido.'); return; }
+  localStorage.setItem('userEmail', email);
+  iniciarSesion(email);
 }
 
-function handleAuthChange(session) {
-  currentSession = session;
-  if (session) {
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('app').style.display = 'flex';
-    const email = session.user.email;
-    document.getElementById('user-email-display').textContent = email;
-    const adminBadge = document.getElementById('admin-badge');
-    adminBadge.style.display = isAdmin() ? 'inline' : 'none';
-    document.getElementById('r-email').value = email;
-    document.getElementById('r-fecha').min = today();
-    document.getElementById('filter-date').value = today();
-    loadAndRenderEstado();
-  } else {
-    document.getElementById('login-screen').style.display = 'flex';
-    document.getElementById('app').style.display = 'none';
-  }
+function iniciarSesion(email) {
+  currentEmail = email;
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('user-email-display').textContent = email;
+  document.getElementById('admin-badge').style.display = isAdmin() ? 'inline' : 'none';
+  document.getElementById('r-email').value = email;
+  document.getElementById('r-fecha').min = today();
+  document.getElementById('filter-date').value = today();
+  initHoras();
+  loadAndRenderEstado();
 }
 
-async function sendOTP() {
-  const email = document.getElementById('login-email').value.trim();
-  if (!email || !email.includes('@')) { showToast('Ingresa un correo válido.'); return; }
-  const btn = document.getElementById('btn-send-otp');
-  btn.disabled = true; btn.textContent = 'Enviandoâ¦';
-  const { error } = await db.auth.signInWithOtp({
-    email,
-    options: { shouldCreateUser: true, emailRedirectTo: 'https://agendamiento-estacionamientos.vercel.app' }
-  });
-  btn.disabled = false; btn.textContent = 'Enviar código';
-  if (error) { showToast('Error: ' + error.message); return; }
-  document.getElementById('email-sent').textContent = email;
-  document.getElementById('step-email').classList.add('hidden');
-  document.getElementById('step-otp').classList.remove('hidden');
+function salir() {
+  localStorage.removeItem('userEmail');
+  currentEmail = null;
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-email').value = '';
 }
 
-async function verifyOTP() {
-  const email = document.getElementById('login-email').value.trim();
-  const token = document.getElementById('login-otp').value.trim();
-  if (!token || token.length < 6) { showToast('Ingresa el código de 6 dígitos.'); return; }
-  const btn = document.getElementById('btn-verify-otp');
-  btn.disabled = true; btn.textContent = 'Verificandoâ¦';
-  const { error } = await db.auth.verifyOtp({ email, token, type: 'email' });
-  btn.disabled = false; btn.textContent = 'Verificar código';
-  if (error) { showToast('Código inválido o expirado. Intenta de nuevo.'); return; }
-}
+window.addEventListener('DOMContentLoaded', () => {
+  initHoras();
+  const saved = localStorage.getItem('userEmail');
+  if (saved) iniciarSesion(saved);
+});
 
-function backToEmail() {
-  document.getElementById('step-otp').classList.add('hidden');
-  document.getElementById('step-email').classList.remove('hidden');
-  document.getElementById('login-otp').value = '';
+function isAdmin() { return currentEmail === CONFIG.adminEmail; }
+function canCancel(r) {
+  if (!currentEmail) return false;
+  return isAdmin() || (r.email && r.email.toLowerCase() === currentEmail);
 }
-
-async function logout() {
-  await db.auth.signOut();
-}
-
-// ââ PERMISOS âââââââââââââââââââââââââââââââââââââââââââââ
-function isAdmin() {
-  return currentSession?.user?.email === CONFIG.adminEmail;
-}
-
-function canCancel(res) {
-  if (!currentSession) return false;
-  return isAdmin() || res.user_id === currentSession.user.id;
-}
-
-// ââ UTILIDADES âââââââââââââââââââââââââââââââââââââââââââ
 function today() { return new Date().toISOString().split('T')[0]; }
-
 function formatDate(d) {
   if (!d) return '';
   const [y,m,day] = d.split('-');
   const meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-  return `${parseInt(day)} ${meses[parseInt(m)-1]} ${y}`;
+  return parseInt(day)+' '+meses[parseInt(m)-1]+' '+y;
 }
-
 function isToday(d) { return d === today(); }
 function isBefore(d) { return d < today(); }
-
 function nowHHMM() {
   const n = new Date();
-  return String(n.getHours()).padStart(2,'0') + ':' + String(n.getMinutes()).padStart(2,'0');
+  return String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
 }
-
-function showToast(msg, ms = 4000) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.style.display = 'block';
-  setTimeout(() => t.style.display = 'none', ms);
+function showToast(msg,ms=4000) {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.style.display='block';
+  setTimeout(()=>t.style.display='none',ms);
 }
-
 function closeModal() {
-  pendingCancelId = null;
+  pendingCancelId=null;
   document.getElementById('modal').classList.remove('open');
 }
-
-// ââ TABS âââââââââââââââââââââââââââââââââââââââââââââââââ
-function showTab(tab, el) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-  document.getElementById('tab-' + tab).classList.add('active');
+function showTab(tab,el) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
   el.classList.add('active');
-  if (tab === 'estado') loadAndRenderEstado();
-  if (tab === 'mis-reservas') renderMisReservas();
+  if(tab==='estado') loadAndRenderEstado();
+  if(tab==='mis-reservas') renderMisReservas();
 }
-
-// ââ HORAS ââââââââââââââââââââââââââââââââââââââââââââââââ
-let horasInited = false;
+let horasInited=false;
 function initHoras() {
-  if (horasInited) return;
-  horasInited = true;
-  const horas = [];
-  for (let h = 7; h <= 20; h++) {
-    horas.push(String(h).padStart(2,'0') + ':00');
-    if (h < 20) horas.push(String(h).padStart(2,'0') + ':30');
+  if(horasInited) return;
+  horasInited=true;
+  const horas=[];
+  for(let h=7;h<=20;h++){
+    horas.push(String(h).padStart(2,'0')+':00');
+    if(h<20) horas.push(String(h).padStart(2,'0')+':30');
   }
-  const si = document.getElementById('r-inicio');
-  const sf = document.getElementById('r-fin');
-  horas.forEach(h => {
-    si.innerHTML += `<option value="${h}">${h}</option>`;
-    sf.innerHTML += `<option value="${h}">${h}</option>`;
+  const si=document.getElementById('r-inicio');
+  const sf=document.getElementById('r-fin');
+  horas.forEach(h=>{
+    si.innerHTML+='<option value="'+h+'">'+h+'</option>';
+    sf.innerHTML+='<option value="'+h+'">'+h+'</option>';
   });
-  si.value = '08:00'; sf.value = '09:00';
+  si.value='08:00'; sf.value='09:00';
 }
-
-// ââ ESTADO âââââââââââââââââââââââââââââââââââââââââââââââ
 function clearDateFilter() {
-  document.getElementById('filter-date').value = '';
+  document.getElementById('filter-date').value='';
   loadAndRenderEstado();
 }
-
 async function loadAndRenderEstado() {
-  const container = document.getElementById('estado-container');
-  container.innerHTML = '<p style="font-size:14px;color:var(--muted)">Cargandoâ¦</p>';
-  const { data } = await db
-    .from('reservations')
-    .select('*')
-    .eq('status', 'active')
-    .order('fecha').order('inicio');
-  allReservations = data || [];
+  const c=document.getElementById('estado-container');
+  c.innerHTML='<p style="font-size:14px;color:var(--muted)">Cargando...</p>';
+  const {data}=await db.from('reservations').select('*').eq('status','active').order('fecha').order('inicio');
+  allReservations=data||[];
   renderEstado();
 }
-
 function renderEstado() {
-  const filterDate = document.getElementById('filter-date').value;
-  const container = document.getElementById('estado-container');
-  const hhmm = nowHHMM();
-  let html = '';
-
-  SPOTS.forEach(spot => {
-    const spotRes = allReservations.filter(r =>
-      r.spot === spot && (!filterDate || r.fecha === filterDate)
-    );
-    const nowBusy = spotRes.some(r =>
-      isToday(r.fecha) && r.inicio <= hhmm && hhmm < r.fin
-    );
-
-    html += `<div class="spot-card">
-      <div class="spot-header">
-        <div class="spot-dot ${nowBusy ? 'dot-busy' : 'dot-free'}"></div>
-        <div>
-          <div class="spot-name">${spot}</div>
-          <div class="spot-status">${nowBusy ? 'Ocupado ahora' : 'Libre ahora'}</div>
-        </div>
-      </div>`;
-
-    if (spotRes.length === 0) {
-      html += `<p class="empty-msg">${filterDate ? 'Sin reservas para esta fecha' : 'Sin reservas programadas'}</p>`;
+  const filterDate=document.getElementById('filter-date').value;
+  const c=document.getElementById('estado-container');
+  const hhmm=nowHHMM();
+  let html='';
+  SPOTS.forEach(spot=>{
+    const spotRes=allReservations.filter(r=>r.spot===spot&&(!filterDate||r.fecha===filterDate));
+    const nowBusy=spotRes.some(r=>isToday(r.fecha)&&r.inicio<=hhmm&&hhmm<r.fin);
+    html+='<div class="spot-card"><div class="spot-header"><div class="spot-dot '+(nowBusy?'dot-busy':'dot-free')+'"></div><div><div class="spot-name">'+spot+'</div><div class="spot-status">'+(nowBusy?'Ocupado ahora':'Libre ahora')+'</div></div></div>';
+    if(spotRes.length===0){
+      html+='<p class="empty-msg">'+(filterDate?'Sin reservas para esta fecha':'Sin reservas programadas')+'</p>';
     } else {
-      spotRes.forEach(r => {
-        const past = isBefore(r.fecha);
-        const mine = r.user_id === currentSession?.user?.id;
-        html += `<div class="res-item" style="${past ? 'opacity:.45' : ''}">
-          <div class="res-item-header">
-            <div>
-              <div class="res-time">${r.inicio} â ${r.fin}</div>
-              <div class="res-name">${r.nombre} ${mine ? '<span class="badge-mine">tuya</span>' : ''}</div>
-              <div class="res-email-small">${r.email}</div>
-              <div style="font-size:12px;color:var(--muted);margin-top:2px">${formatDate(r.fecha)}${isToday(r.fecha) ? ' <span class="badge-today">hoy</span>' : ''}</div>
-            </div>
-            ${canCancel(r) ? `<button class="btn-danger-sm" onclick="prepareCancel('${r.id}','${r.nombre}','${r.spot}','${r.fecha}','${r.inicio}','${r.fin}','${r.email}')">Anular</button>` : ''}
-          </div>
-        </div>`;
+      spotRes.forEach(r=>{
+        const past=isBefore(r.fecha);
+        const mine=r.email&&r.email.toLowerCase()===currentEmail;
+        html+='<div class="res-item" style="'+(past?'opacity:.45':'')+'"><div class="res-item-header"><div>';
+        html+='<div class="res-time">'+r.inicio+' - '+r.fin+'</div>';
+        html+='<div class="res-name">'+r.nombre+(mine?' <span class="badge-mine">tuya</span>':'')+'</div>';
+        html+='<div class="res-email-small">'+r.email+'</div>';
+        html+='<div style="font-size:12px;color:var(--muted);margin-top:2px">'+formatDate(r.fecha)+(isToday(r.fecha)?' <span class="badge-today">hoy</span>':'')+'</div>';
+        html+='</div>';
+        if(canCancel(r)) html+='<button class="btn-danger-sm" onclick="prepareCancel(\''+r.id+'\',\''+r.nombre.replace(/'/g,"\\'")+'\',\''+r.spot+'\',\''+r.fecha+'\',\''+r.inicio+'\',\''+r.fin+'\',\''+r.email+'\')">Anular</button>';
+        html+='</div></div>';
       });
     }
-    html += '</div>';
+    html+='</div>';
   });
-
-  container.innerHTML = html;
+  c.innerHTML=html;
 }
-
-// ââ RESERVAR âââââââââââââââââââââââââââââââââââââââââââââ
 async function hacerReserva() {
-  const nombre = document.getElementById('r-nombre').value.trim();
-  const email  = currentSession.user.email;
-  const spot   = document.getElementById('r-spot').value;
-  const fecha  = document.getElementById('r-fecha').value;
-  const inicio = document.getElementById('r-inicio').value;
-  const fin    = document.getElementById('r-fin').value;
-
-  if (!nombre || !fecha || !inicio || !fin) { showToast('Completa todos los campos.'); return; }
-  if (inicio >= fin) { showToast('La hora inicio debe ser antes del término.'); return; }
-  if (fecha < today()) { showToast('No puedes reservar en una fecha pasada.'); return; }
-
-  const { data: conflicts } = await db.from('reservations')
-    .select('id').eq('spot', spot).eq('fecha', fecha).eq('status', 'active')
-    .lt('inicio', fin).gt('fin', inicio);
-
-  if (conflicts?.length > 0) { showToast(`${spot} ya está reservado en ese horario.`); return; }
-
-  const btn = document.getElementById('btn-reservar');
-  btn.disabled = true; btn.textContent = 'Guardandoâ¦';
-
-  const { error } = await db.from('reservations').insert([{
-    nombre, email, spot, fecha, inicio, fin,
-    status: 'active',
-    user_id: currentSession.user.id
-  }]);
-
-  btn.disabled = false; btn.textContent = 'Confirmar reserva';
-
-  if (error) { showToast('Error al guardar: ' + error.message); return; }
-
-  showToast('Reserva confirmada!');
-  document.getElementById('r-nombre').value = '';
-  document.getElementById('r-fecha').value = '';
+  const nombre=document.getElementById('r-nombre').value.trim();
+  const email=currentEmail;
+  const spot=document.getElementById('r-spot').value;
+  const fecha=document.getElementById('r-fecha').value;
+  const inicio=document.getElementById('r-inicio').value;
+  const fin=document.getElementById('r-fin').value;
+  if(!nombre||!fecha||!inicio||inicio===''||!fin||fin===''){showToast('Completa todos los campos.');return;}
+  if(inicio>=fin){showToast('La hora inicio debe ser antes del termino.');return;}
+  if(fecha<today()){showToast('No puedes reservar en una fecha pasada.');return;}
+  const {data:conflicts}=await db.from('reservations').select('id').eq('spot',spot).eq('fecha',fecha).eq('status','active').lt('inicio',fin).gt('fin',inicio);
+  if(conflicts?.length>0){showToast(spot+' ya esta reservado en ese horario.');return;}
+  const btn=document.getElementById('btn-reservar');
+  btn.disabled=true; btn.textContent='Guardando...';
+  const {error}=await db.from('reservations').insert([{nombre,email,spot,fecha,inicio,fin,status:'active'}]);
+  btn.disabled=false; btn.textContent='Confirmar reserva';
+  if(error){showToast('Error al guardar: '+error.message);return;}
+  showToast('Reserva confirmada!');
+  document.getElementById('r-nombre').value='';
+  document.getElementById('r-fecha').value='';
   loadAndRenderEstado();
 }
-
-// ââ MIS RESERVAS âââââââââââââââââââââââââââââââââââââââââ
 async function renderMisReservas() {
-  const container = document.getElementById('mis-reservas-container');
-  container.innerHTML = '<p style="font-size:13px;color:var(--muted)">Cargandoâ¦</p>';
-
-  let query = db.from('reservations').select('*').order('fecha', { ascending: false });
-  if (!isAdmin()) {
-    query = query.or(`user_id.eq.${currentSession.user.id},email.ilike.${currentSession.user.email}`);
-  }
-
-  const { data } = await query;
-
-  if (!data || data.length === 0) {
-    container.innerHTML = '<p style="font-size:13px;color:var(--hint)">No hay reservas registradas.</p>';
-    return;
-  }
-
-  let html = '';
-  data.forEach(r => {
-    html += `<div class="res-card">
-      <div class="res-card-main">
-        <p>${r.nombre} â <span>${r.spot}</span></p>
-        <span>${formatDate(r.fecha)}${isToday(r.fecha) ? ' <span class="badge-today">hoy</span>' : ''} · ${r.inicio}â${r.fin}</span>
-        <div class="res-card-email">${r.email}</div>
-      </div>
-      <div>
-        ${r.status === 'cancelled'
-          ? '<span class="badge-cancelled">Anulada</span>'
-          : canCancel(r)
-            ? `<button class="btn-danger-sm" onclick="prepareCancel('${r.id}','${r.nombre}','${r.spot}','${r.fecha}','${r.inicio}','${r.fin}','${r.email}')">Anular</button>`
-            : ''}
-      </div>
-    </div>`;
+  const c=document.getElementById('mis-reservas-container');
+  c.innerHTML='<p style="font-size:13px;color:var(--muted)">Cargando...</p>';
+  let query=db.from('reservations').select('*').order('fecha',{ascending:false});
+  if(!isAdmin()) query=query.ilike('email',currentEmail);
+  const {data}=await query;
+  if(!data||data.length===0){c.innerHTML='<p style="font-size:13px;color:var(--hint)">No hay reservas registradas.</p>';return;}
+  let html='';
+  data.forEach(r=>{
+    html+='<div class="res-card"><div class="res-card-main"><p>'+r.nombre+' - <span>'+r.spot+'</span></p><span>'+formatDate(r.fecha)+(isToday(r.fecha)?' <span class="badge-today">hoy</span>':'')+' - '+r.inicio+'-'+r.fin+'</span><div class="res-card-email">'+r.email+'</div></div><div>';
+    if(r.status==='cancelled') html+='<span class="badge-cancelled">Anulada</span>';
+    else if(canCancel(r)) html+='<button class="btn-danger-sm" onclick="prepareCancel(\''+r.id+'\',\''+r.nombre.replace(/'/g,"\\'")+'\',\''+r.spot+'\',\''+r.fecha+'\',\''+r.inicio+'\',\''+r.fin+'\',\''+r.email+'\')">Anular</button>';
+    html+='</div></div>';
   });
-  container.innerHTML = html;
+  c.innerHTML=html;
 }
-
-// ââ ANULAR ââââââââââââââââââââââââââââââââââââââââââââââââ
-function prepareCancel(id, nombre, spot, fecha, inicio, fin, email) {
-  pendingCancelId = { id, email, nombre, spot, fecha, inicio, fin };
-  document.getElementById('modal-msg').innerHTML =
-    `Â¿Anular la reserva de <strong>${nombre}</strong> en <strong>${spot}</strong> el ${formatDate(fecha)} (${inicio}â${fin})?`;
+function prepareCancel(id,nombre,spot,fecha,inicio,fin,email) {
+  pendingCancelId={id,email,nombre,spot,fecha,inicio,fin};
+  document.getElementById('modal-msg').innerHTML='Anular la reserva de <strong>'+nombre+'</strong> en <strong>'+spot+'</strong> el '+formatDate(fecha)+' ('+inicio+'-'+fin+')?';
   document.getElementById('modal').classList.add('open');
 }
-
 async function confirmarAnulacion() {
-  if (!pendingCancelId) return;
-  const { id, email, nombre, spot, fecha, inicio, fin } = pendingCancelId;
-
-  const { error } = await db.from('reservations')
-    .update({ status: 'cancelled' }).eq('id', id);
-
-  if (error) { showToast('Error al anular: ' + error.message); closeModal(); return; }
-
+  if(!pendingCancelId) return;
+  const {id}=pendingCancelId;
+  const {error}=await db.from('reservations').update({status:'cancelled'}).eq('id',id);
+  if(error){showToast('Error al anular: '+error.message);closeModal();return;}
   showToast('Reserva anulada.');
   closeModal();
   loadAndRenderEstado();
   renderMisReservas();
 }
-
-// ââ ARRANQUE âââââââââââââââââââââââââââââââââââââââââââââ
-initHoras();
-initAuth();
 </script>
 </body>
 </html>
