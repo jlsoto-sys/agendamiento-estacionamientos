@@ -265,23 +265,9 @@ let pendingCancelId = null;
 
 // ââ AUTH âââââââââââââââââââââââââââââââââââââââââââââââââ
 async function initAuth() {
-  // Si llega desde enlace mágico (PKCE), mostrar "cargando" y esperar sesión
-  const params = new URLSearchParams(window.location.search);
-  const hash = window.location.hash;
-  const hasMagicLink = params.has('code') || hash.includes('access_token');
-
-  if (hasMagicLink) {
-    document.getElementById('login-screen').innerHTML =
-      '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center">' +
-      '<p style="font-size:16px;color:#6b7280">Iniciando sesión...</p></div>';
-  }
-
-  db.auth.onAuthStateChange((event, session) => {
-    handleAuthChange(session);
-  });
-
   const { data: { session } } = await db.auth.getSession();
   handleAuthChange(session);
+  db.auth.onAuthStateChange((_, session) => handleAuthChange(session));
 }
 
 function handleAuthChange(session) {
